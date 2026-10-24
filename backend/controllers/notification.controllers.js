@@ -1,4 +1,5 @@
 import Notification from "../models/notification.model.js"
+import { logServerError } from "../config/logging.js"
 
 export const getNotifications=async (req,res)=>{
     try {
@@ -7,7 +8,11 @@ export const getNotifications=async (req,res)=>{
          .populate("relatedPost", "image description ")                   
         return res.status(200).json(notification)                      
     } catch (error) {
-        return res.status(500).json({message:`get notification error ${error}`})
+        logServerError("notification.get_failed", error, req.requestId)
+        return res.status(500).json({
+            message: "Unable to load notifications",
+            requestId: req.requestId
+        })
         
     }
 }
@@ -24,7 +29,11 @@ export const deleteNotifications=async (req,res)=>{
        
         return res.status(200).json({message: "notification deleted successfully"})                      
     } catch (error) {
-        return res.status(500).json({message:`del notification error ${error}`})
+        logServerError("notification.delete_failed", error, req.requestId)
+        return res.status(500).json({
+            message: "Unable to delete notification",
+            requestId: req.requestId
+        })
         
     }
 }
@@ -36,7 +45,11 @@ export const clearAllNotifications=async (req,res)=>{
         
         return res.status(200).json({message: "notification deleted successfully"})                      
     } catch (error) {
-        return res.status(500).json({message:`clear all notification error ${error}`})
+        logServerError("notification.clear_failed", error, req.requestId)
+        return res.status(500).json({
+            message: "Unable to clear notifications",
+            requestId: req.requestId
+        })
         
     }
 }

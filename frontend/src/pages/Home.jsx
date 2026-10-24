@@ -12,10 +12,11 @@ import EditProfile from "../components/EditProfile.jsx";
 import { authDataContext } from "../context/AuthContext.jsx";
 import axios from "axios";
 import Post from "../components/Post.jsx";
+import getApiErrorMessage from "../utils/getApiErrorMessage.js";
 
 
 function Home() {
-  let { userData,show,setShow,postData,handleGetProfile } = useContext(userDataContext);
+  let { userData,show,setShow,postData,postError,getPost,handleGetProfile } = useContext(userDataContext);
   let {serverUrl} =useContext(authDataContext)
 
   let [frontendImage,setFrontendImage]=useState("")
@@ -23,6 +24,7 @@ function Home() {
   let [description,setDescription]=useState("")
    
   let [uploadPost,setUploadPost]=useState(false)
+  let [postActionError,setPostActionError]=useState("")
 
   let Image=useRef()
     let [posting,setPosting]=useState(false)
@@ -37,38 +39,40 @@ function Home() {
 
   async function handleUploadPost(){
     setPosting(true)
+    setPostActionError("")
     try {
       let formdata=new FormData()
       formdata.append("description",description)
       if(backendImage){
         formdata.append("image",backendImage)
       }
-      let result=await axios.post(serverUrl+"/api/post/create",
-        formdata,{withCredentials:true})
-     console.log(result)
-      setPosting(false)
+      await axios.post(serverUrl+"/api/post/create", formdata, { withCredentials: true })
+      await getPost()
       setUploadPost(false)
 
     } catch (error) {
+      setPostActionError(getApiErrorMessage(error, "Unable to create your post. Please try again."))
+    } finally {
       setPosting(false)
-      console.log(error)
-      
     }
    }
 
-   const handleSuggestedUsers=async ()=>{
-      try {
-        let result =await axios.get(serverUrl+"/api/user/suggestedusers",{withCredentials:true})
-        setSuggestedUser(result.data)
-      } catch (error) {
-        console.log(error)
+  useEffect(() => {
+    const controller = new AbortController()
+
+    axios.get(serverUrl + "/api/user/suggestedusers", {
+      withCredentials: true,
+      signal: controller.signal
+    }).then((result) => {
+      setSuggestedUser(result.data)
+    }).catch(() => {
+      if (!controller.signal.aborted) {
+        console.error("Unable to load suggested users")
       }
-   }
+    })
 
-
-useEffect(()=>{
-  handleSuggestedUsers()
-},[])
+    return () => controller.abort()
+  }, [serverUrl])
 
 
 
@@ -147,6 +151,7 @@ useEffect(()=>{
              <textarea className={`w-full ${frontendImage?"h-[200px]":"h-[550px]"} outline-none border-none p-[10px] resize-none text-[19px]`} 
              placeholder="what do you want to talk about...?"  value={description}
              onChange={(e)=>setDescription(e.target.value)}></textarea> 
+                  {postActionError && <p role="alert" className="text-red-600">{postActionError}</p>}
                   <input type="file" ref={Image}  hidden onChange={handleImage} />
                 <div className="w-full h-[300px] overflow-hidden flex justify-center items-center rounded-lg" >
                   <img src={frontendImage ||  " "} alt="" className="h-full rounded-lg " />
@@ -193,6 +198,7 @@ useEffect(()=>{
                  <Post key={index} id={post._id} description={post.description} author={post.author}
                      like={post.like} comment={post.comment} image={post.image} createdAt={post.createdAt}  />
                ))}
+               {postError && <p role="alert" className="rounded-lg bg-white p-4 text-center text-red-600">{postError}</p>}
 
         </div>
 
@@ -232,8 +238,3 @@ useEffect(()=>{
 }
 
 export default Home;
-
-
-
-
-

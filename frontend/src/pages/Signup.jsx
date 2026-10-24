@@ -4,11 +4,12 @@ import { useNavigate } from "react-router-dom";
 import { authDataContext } from "../context/AuthContext";
 import axios from "axios";
 import { userDataContext } from "../context/UserContext.jsx";
+import getApiErrorMessage from "../utils/getApiErrorMessage.js";
 
 function Signup() {
   let [show, setShow] = useState(false);
   let {serverUrl}=useContext(authDataContext)
-  let { setUserData } = useContext(userDataContext)
+  let { setUserData, getPost } = useContext(userDataContext)
   let navigate = useNavigate();
   let [firstName,setFirstName]=useState("")
   let [lastName,setLastName]=useState("")
@@ -29,18 +30,18 @@ function Signup() {
                 email,
                 password
             },{withCredentials:true})
-            console.log(result)
             setUserData(result.data)
+            await getPost()
             navigate("/")
             setErr("")
-            setLoading(false)
             setFirstName("")
             setLastName("")
             setUserName("")
             setEmail("")
             setPassword("")
         } catch (error) {
-            setErr(error.response.data.message)
+            setErr(getApiErrorMessage(error, "Unable to create your account. Please try again."))
+        } finally {
             setLoading(false)
         }               
 

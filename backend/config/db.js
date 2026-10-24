@@ -11,7 +11,7 @@ const connectDb = async () => {
         throw new Error("MONGODB_URL is required");
     }
 
-    if (!connectionPromise) {
+    if (!connectionPromise || mongoose.connection.readyState === 0) {
         connectionPromise = mongoose.connect(process.env.MONGODB_URL, {
             serverSelectionTimeoutMS: 15000
         }).catch((error) => {
@@ -22,5 +22,9 @@ const connectDb = async () => {
 
     return connectionPromise;
 };
+
+mongoose.connection.on("disconnected", () => {
+    connectionPromise = undefined;
+})
 
 export default connectDb;

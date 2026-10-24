@@ -2,6 +2,7 @@ import uploadOnCloundinary from "../config/cloudinary.js";
 import Post from "../models/post.model.js"
 import {io} from "../index.js"
 import Notification from "../models/notification.model.js";
+import { logServerError } from "../config/logging.js"
 
 export const createPost=async (req,res)=>{
     try {
@@ -23,7 +24,11 @@ export const createPost=async (req,res)=>{
    return res.status(201).json(newPost)
    
 } catch (error) {
-       return res.status(201).json(`create post error ${error}`)
+       logServerError("post.create_failed", error, req.requestId)
+       return res.status(500).json({
+           message: "Unable to create post",
+           requestId: req.requestId
+       })
         
     }
 
@@ -38,8 +43,11 @@ export const getPost =async (req,res)=>{
       .sort({createdAt:-1})
       return res.status(200).json(post)
    } catch (error) {
-      console.log(error)
-      return res.status(500).json({message:"getPost error"})
+      logServerError("post.get_failed", error, req.requestId)
+      return res.status(500).json({
+          message: "Unable to load posts",
+          requestId: req.requestId
+      })
       
    }
  
@@ -74,7 +82,11 @@ export const like =async (req,res)=>{
       return res.status(200).json(post)
      
    } catch (error) {
-      return res.status(500).json({message:`like error ${error}`})
+      logServerError("post.like_failed", error, req.requestId)
+      return res.status(500).json({
+          message: "Unable to update post",
+          requestId: req.requestId
+      })
    }
 }
 
@@ -102,13 +114,15 @@ export const comment =async (req,res)=>{
    return res.status(200).json(post)
 
 } catch (error) {
-    
-    return res.status(500).json({message:`comment error ${error}`})
+    logServerError("post.comment_failed", error, req.requestId)
+    return res.status(500).json({
+        message: "Unable to add comment",
+        requestId: req.requestId
+    })
   }
 
 
 
 
 }
-
 

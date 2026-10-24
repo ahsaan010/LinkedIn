@@ -23,8 +23,8 @@ and Development as appropriate:
 | `CLOUDINARY_CLOUD_NAME` | Yes for image uploads | Cloudinary account name |
 | `CLOUDINARY_API_KEY` | Yes for image uploads | Cloudinary API key |
 | `CLOUDINARY_API_SECRET` | Yes for image uploads | Cloudinary API secret |
-| `REDIS_URL` | Yes on Vercel | Redis connection URL shared by Socket.IO instances |
-| `FRONTEND_URLS` | Only for cross-origin frontends | Comma-separated allowed frontend origins |
+| `REDIS_URL` | Required for cross-instance realtime | Redis connection URL shared by Socket.IO instances; REST APIs remain available without it |
+| `FRONTEND_URLS` | Recommended | Comma-separated allowed frontend origins, including `https://linkedin-ahsaan010.vercel.app` |
 | `COOKIE_SAME_SITE` | Only when changing cookie policy | `lax` for the same-origin Vercel setup; use `none` with HTTPS for cross-site cookies |
 | `VITE_API_URL` | No | Override the browser API origin; defaults to the current Vercel origin |
 | `VITE_SOCKET_URL` | No | Override the browser Socket.IO origin; defaults to `VITE_API_URL` or the current Vercel origin |
@@ -37,10 +37,12 @@ secrets in `VITE_*` variables. For the default same-origin setup, leave both
 
 Provision a Redis-compatible service (for example, a Vercel Marketplace Redis
 integration) and set its TLS connection URL as `REDIS_URL` in each environment.
-The backend fails during startup on Vercel if this variable is missing. Redis
-is needed because Vercel can run requests and WebSocket connections on
-different function instances; the Socket.IO Redis adapter distributes events
-between those instances.
+The backend logs a diagnostic event and continues serving HTTP APIs if this
+variable is missing or Redis is unavailable. Socket.IO then uses its
+single-instance adapter, so realtime events are not reliable across Vercel
+function instances. Redis is needed because Vercel can run requests and
+WebSocket connections on different instances; the Socket.IO Redis adapter
+distributes events between them.
 
 Vercel Functions support WebSockets. This project exports its HTTP server for
 the Socket.IO endpoint and the browser client uses WebSocket transport only.
@@ -49,6 +51,12 @@ must reconnect; Socket.IO reconnects and re-authenticates using the token
 cookie. The Redis adapter provides cross-instance event delivery, but the
 actual Vercel deployment and its configured Redis provider must still be
 verified after environment variables are added.
+
+The unauthenticated `GET /api/health` endpoint reports whether MongoDB is
+connected and whether the Redis adapter is ready. Backend error logs include a
+request ID and sanitized stack details; API error responses include the same
+request ID without exposing internal exception details. Use the Vercel Runtime
+Logs view to match a failing response's `requestId` to its server-side error.
 
 ## Local development
 

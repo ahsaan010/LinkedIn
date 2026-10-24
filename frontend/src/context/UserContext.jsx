@@ -3,6 +3,7 @@ import { authDataContext } from './AuthContext.jsx'
 import axios from 'axios'
 import { useNavigate } from 'react-router-dom'
 import { io } from 'socket.io-client'
+import getApiErrorMessage from '../utils/getApiErrorMessage.js'
 
 const socketUrl=import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || window.location.origin
 export let socket=io(socketUrl,{transports:["websocket"],withCredentials:true,autoConnect:false});
@@ -13,6 +14,7 @@ function UserContext({children}) {
     let {serverUrl}=useContext(authDataContext)
     let [show, setShow] = useState(false)
     let [postData,setPostData]=useState([])
+    let [postError,setPostError]=useState("")
     let [profileData,setProfileData]=useState(null)
     let navigate=useNavigate()
  
@@ -23,8 +25,10 @@ function UserContext({children}) {
              setUserData(result.data)  
 
             } catch (error) {
-            console.log(error);
-            setUserData(null)
+                if (error.response?.status !== 401) {
+                    console.error("Unable to load current user:", getApiErrorMessage(error, "Request failed"))
+                }
+                setUserData(null)
             
         }
     }
@@ -36,10 +40,12 @@ const getPost=async ()=>{
     let result=await axios.get(serverUrl+"/api/post/getpost",{
       withCredentials:true
     })
-    console.log(result)
-    setPostData(result.data)
+  setPostData(result.data)
+  setPostError("")
   } catch (error) {
-    console.log(error)
+  setPostError(error.response?.status === 401
+    ? ""
+    : getApiErrorMessage(error, "Unable to load posts. Please try again."))
   }
 } 
 
@@ -71,7 +77,7 @@ const handleGetProfile=async (userName)=>{
 
 
     const value={
-        userData,setUserData,show,setShow,postData,setPostData,
+        userData,setUserData,show,setShow,postData,setPostData,postError,
         getPost,handleGetProfile,profileData,setProfileData,socket
         
 

@@ -5,10 +5,11 @@ import { useNavigate } from "react-router-dom";
 import { authDataContext } from "../context/AuthContext";
 import axios from "axios";
 import { userDataContext } from '../context/UserContext.jsx'
+import getApiErrorMessage from "../utils/getApiErrorMessage.js";
 function Login() {
   let [show, setShow] = useState(false);
   let {serverUrl}=useContext(authDataContext)
-  let { setUserData } = useContext(userDataContext)
+  let { setUserData, getPost } = useContext(userDataContext)
   let navigate = useNavigate();
  
   let [email,setEmail]=useState("")
@@ -25,13 +26,14 @@ function Login() {
                 password
             },{withCredentials:true})
             setUserData(result.data)
+            await getPost()
             navigate("/")
             setErr("")
-            setLoading(false)
             setEmail("")
             setPassword("")
         } catch (error) {
-            setErr(error.response.data.message)
+            setErr(getApiErrorMessage(error, "Unable to sign in. Please try again."))
+        } finally {
             setLoading(false)
         }               
 
