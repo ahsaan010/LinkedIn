@@ -4,7 +4,8 @@ import axios from 'axios'
 import { useNavigate } from 'react-router-dom'
 import { io } from 'socket.io-client'
 
-export let socket=io(window.location.origin,{transports:["websocket"]});
+const socketUrl=import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || window.location.origin
+export let socket=io(socketUrl,{transports:["websocket"],withCredentials:true,autoConnect:false});
 
 export const userDataContext= createContext()
 function UserContext({children}) {
@@ -60,6 +61,13 @@ const handleGetProfile=async (userName)=>{
      getPost()
   }, [])
 
+  useEffect(()=>{
+    if (userData?._id) {
+      socket.connect()
+      return ()=>socket.disconnect()
+    }
+    socket.disconnect()
+  }, [userData?._id])
 
 
     const value={

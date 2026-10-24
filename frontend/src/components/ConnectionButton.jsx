@@ -1,12 +1,11 @@
 import React, { useState,useContext,useEffect } from 'react'
 import { authDataContext } from '../context/AuthContext';
-import { socket, userDataContext } from '../context/UserContext.jsx';
+import { socket } from '../context/UserContext.jsx';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 function ConnectionButton({userId}) {
     let {serverUrl}=useContext(authDataContext)
-    let {userData}=useContext(userDataContext)
     let [status,setStatus]=useState("")
      let navigate=useNavigate()
      
@@ -30,33 +29,35 @@ function ConnectionButton({userId}) {
 
         }
     }
-    const handleGetStatus=async ()=>{
-        try{
-            let result=await axios.post(`${serverUrl}/api/connection/getStatus/${userId}`,
-                {},{withCredentials:true})
-            console.log(result)    
-        setStatus(result.data.status)
-        } catch(error){
-            console.log(error)      
-
-        }
-    }
- 
     useEffect(()=>{
-          socket.emit("register",userData._id)
-          handleGetStatus()
+        let active=true
 
-        socket.on("statusUpdate",({updatedUserId,newStatus})=>{
-            if(updatedUserId==userId){
+        const handleStatusUpdate=({updatedUserId,newStatus})=>{
+            if(updatedUserId===userId){
             setStatus(newStatus)
             }
-        })
+        }
+        socket.on("statusUpdate",handleStatusUpdate)
+
+        axios.post(`${serverUrl}/api/connection/getStatus/${userId}`,
+            {},{withCredentials:true})
+            .then((result)=>{
+                if(active){
+                    setStatus(result.data.status)
+                }
+            })
+            .catch((error)=>{
+                if(active){
+                    console.log(error)
+                }
+            })
 
        return ()=>{
-        socket.off("statusUpdate")
+        active=false
+        socket.off("statusUpdate",handleStatusUpdate)
        }
 
-    },[userId])
+    },[serverUrl,userId])
 
   const handleClick= async ()=>{ 
     if(status==="disconnect"){

@@ -3,7 +3,7 @@ import { createContext } from 'react'
 export const authDataContext=createContext()
 
 function AuthContext({children}) {
-const serverUrl=window.location.origin
+const serverUrl=(import.meta.env.VITE_API_URL || window.location.origin).replace(/\/+$/, '')
     let value={
          serverUrl
     }

@@ -2,6 +2,13 @@ import genToken from "../config/token.js"
 import User from "../models/user.model.js"
 import bcrypt from 'bcryptjs'
 
+const cookieOptions = {
+    httpOnly: true,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    sameSite: process.env.COOKIE_SAME_SITE || "lax",
+    secure: process.env.NODE_ENV === "production"
+}
+
 export const signUp=async (req,res)=>{
     try {
 
@@ -30,12 +37,7 @@ export const signUp=async (req,res)=>{
 
        })
         let  token=await genToken(user._id)
-        res.cookie("token",token,{
-          httpOnly:true,   
-          maxAge: 7*24*60*60*1000,
-          sameSite:"strict",
-          secure:process.env.NODE_ENVIRONMENT==="production"
-        })
+        res.cookie("token",token,cookieOptions)
       return res.status(201).json(user)
 
 
@@ -62,14 +64,7 @@ export const login=async (req,res)=>{
         
      
         let  token=await genToken(user._id)
-       res.cookie("token", token, {
-    httpOnly: true,
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-    sameSite: process.env.NODE_ENV === "production"
-        ? "none"
-        : "lax",
-    secure: process.env.NODE_ENV === "production"
-});
+       res.cookie("token", token, cookieOptions)
       return res.status(201).json(user)
 
 
@@ -81,7 +76,8 @@ export const login=async (req,res)=>{
 
 export const logOut=async (req,res)=>{
     try {
-        res.clearCookie("token")
+        const { maxAge: _maxAge, ...clearCookieOptions } = cookieOptions
+        res.clearCookie("token", clearCookieOptions)
         return res.status(200).json({message:"log out successfully"})
     } catch (error) {
          console.log(error); 
