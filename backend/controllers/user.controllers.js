@@ -1,18 +1,21 @@
 import uploadOnCloundinary from "../config/cloudinary.js"
 import User from "../models/user.model.js"
+import { logServerError } from "../config/logging.js"
 
 export const getCurrentUser=async (req,res)=>{
     try {
         let id=req.userId
        const user=await User.findById(id).select("-password")
         if(!user){
-            return res.status(400).json({message:"user does not fund"})
+            return res.status(401).json({message:"Your account is no longer available"})
         }
         return res.status(200).json(user)
     } catch (error) {
-     console.log(error);
-     
-     return res.status(400).json({message:"get current user error"})
+        logServerError("user.current_user_failed", error, req.requestId)
+        return res.status(500).json({
+            message: "Unable to load your account",
+            requestId: req.requestId
+        })
     }
 }
 
@@ -25,7 +28,6 @@ export const updateProfile=async (req,res)=>{
         let experience=req.body.experience?JSON.parse(req.body.experience):[]
             let profileImage;
             let coverImage
-            console.log(req.files)
             if(req.files.profileImage){
                  profileImage=await uploadOnCloundinary(req.files.profileImage[0].path)
 
@@ -42,8 +44,11 @@ export const updateProfile=async (req,res)=>{
             return res.status(200).json(user)
 
     } catch (error) {
-          console.log(error);
-          return res.status(500).json({message:` update Profile error ${error}`})
+          logServerError("user.update_profile_failed", error, req.requestId)
+          return res.status(500).json({
+              message: "Unable to update your profile",
+              requestId: req.requestId
+          })
     }
 }
 
@@ -57,8 +62,11 @@ export const getprofile=async (req,res)=>{
          }
          return res.status(200).json(user)
     } catch (error) {
-         console.log(error);
-          return res.status(500).json({message:` get Profile error ${error}`})
+        logServerError("user.profile_failed", error, req.requestId)
+        return res.status(500).json({
+            message: "Unable to load this profile",
+            requestId: req.requestId
+        })
     }
 }
 
@@ -75,11 +83,14 @@ export const search=async (req,res)=>{
                 {userName:{$regex:query,$options:"i"}},
                 {skills:{$in:[query]}}
             ]
-         })
+          }).select("-password")
          return res.status(200).json(users)
     } catch (error) {
-        console.log(error)
-        return res.status(500).json({message:`search error ${error}`})
+        logServerError("user.search_failed", error, req.requestId)
+        return res.status(500).json({
+            message: "Unable to search users",
+            requestId: req.requestId
+        })
     }
 }
 
@@ -96,8 +107,10 @@ export const getSuggestedUser=async (req,res)=>{
             
         return res.status(200).json(suggestedUsers)
     } catch (error) {
-          console.log(error)
-        return res.status(500).json({message:`suggestedUser error ${error}`})
+        logServerError("user.suggested_users_failed", error, req.requestId)
+        return res.status(500).json({
+            message: "Unable to load suggested users",
+            requestId: req.requestId
+        })
     }
 }
-
