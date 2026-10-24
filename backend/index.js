@@ -1,53 +1,65 @@
-import express from "express"
-import dotenv from "dotenv"
-import connectDb from "./config/db.js"
-import cookieParser from "cookie-parser"
-import cors from "cors"
-import authRouter from "./routes/auth.routes.js"
-import userRouter from "./routes/user.routes.js"
-import postRouter from "./routes/post.routes.js"
-import connectionRouter from "./routes/connection.routes.js"
-import http from "http"
-import { Server } from "socket.io"
-import notificationRouter from "./routes/notification.routes.js"
-dotenv.config()
-let app=express()
-let server=http.createServer(app)
-export const io=new Server(server,{
-    cors:({
-          origin:"https://linkedin-frontend-vbxq.onrender.com",
-          credentials:true
-    })
-})
+import express from "express";
+import dotenv from "dotenv";
+import connectDb from "./config/db.js";
+import cookieParser from "cookie-parser";
+import cors from "cors";
+import authRouter from "./routes/auth.routes.js";
+import userRouter from "./routes/user.routes.js";
+import postRouter from "./routes/post.routes.js";
+import connectionRouter from "./routes/connection.routes.js";
+import http from "http";
+import { Server } from "socket.io";
+import notificationRouter from "./routes/notification.routes.js";
 
-app.use(express.json())
-app.use(cookieParser())
+dotenv.config();
+
+const app = express();
+const server = http.createServer(app);
+
+const allowedOrigins = [
+    "https://linkedin-frontend-vbxq.onrender.com",
+    "http://localhost:5173"
+];
+
 app.use(cors({
-    origin:"https://linkedin-frontend-vbxq.onrender.com",
-    credentials:true
-}))
-let port=process.env.PORT || 5000
-app.use("/api/auth",authRouter)
-app.use("/api/user",userRouter)
-app.use("/api/post",postRouter)
-app.use("/api/connection",connectionRouter)
-app.use("/api/notification",notificationRouter)
-export const userSocketMap=new Map() 
-io.on("connection",(socket)=>{
+    origin: allowedOrigins,
+    credentials: true
+}));
 
-    console.log("user connected",socket.id)
-     socket.on("register",(userId)=>{
-        userSocketMap.set(userId,socket.id)
+app.use(express.json());
+app.use(cookieParser());
 
-     })
-    socket.on("disconnect",(socket)=>{
-        console.log("user disconnected",socket.id)
-    })
-})
+export const io = new Server(server, {
+    cors: {
+        origin: allowedOrigins,
+        methods: ["GET", "POST", "PUT", "DELETE"],
+        credentials: true
+    }
+});
 
+export const userSocketMap = new Map();
 
-server.listen(port,()=>{
+io.on("connection", (socket) => {
+    console.log("user connected", socket.id);
+
+    socket.on("register", (userId) => {
+        userSocketMap.set(userId, socket.id);
+    });
+
+    socket.on("disconnect", (reason) => {
+        console.log("user disconnected", reason);
+    });
+});
+
+app.use("/api/auth", authRouter);
+app.use("/api/user", userRouter);
+app.use("/api/post", postRouter);
+app.use("/api/connection", connectionRouter);
+app.use("/api/notification", notificationRouter);
+
+const port = process.env.PORT || 5000;
+
+server.listen(port, () => {
     connectDb();
     console.log("server started");
-
-})
+});
